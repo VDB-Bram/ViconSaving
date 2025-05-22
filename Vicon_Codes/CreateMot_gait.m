@@ -1,12 +1,21 @@
-function CreateMot_gait(labname,IPlates,Stairs)
-addpath('C:\Users\Public\Documents\Vicon\Nexus2.x\Configurations\Pipelines\Vicon_Codes\Functions')
+% function CreateMot_gait(labname)
+% addpath('C:\Users\Public\Documents\Vicon\Nexus2.x\Configurations\Pipelines\Vicon_Codes\Functions')
+addpath('C:\Users\u0138016\OneDrive - KU Leuven\GitHub\ViconSaving\Vicon_Codes\Functions')
+
 %% Define Input
 %--------------
+bool.process_trc = 0;
+bool.process_EMG = 1;
+bool.process_GRF = 1;
 
-vicon = ViconNexus();
-[path, name] = vicon.GetTrialName();
+% vicon = ViconNexus();
+% [path, name] = vicon.GetTrialName();
+labname = 'CMAL_1';
+path = 'C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP21\T0\Data\Processed\C3D';
+name = 'CP21_T0_02';
 main_root   = path; %directory to the place where the C3D files you want to process are stored
 path_out    = path; %directory where you want to store the OSIM-files
+
 
 %Provide names of 2 markers on the foot to automatically couple side to
 %grf. IMPORTANT: does not work when you are standing with both feet on the
@@ -14,66 +23,98 @@ path_out    = path; %directory where you want to store the OSIM-files
 Footmarker.R = 'RHEE';
 Footmarker.L = 'LHEE';
 
-treshold    = 20; % treshold to define valid FP contact.
-FP_filter   = 15; % treshold for the low-pass filter for the force plate data.
+treshold    = 10; % treshold to define valid FP contact.
+FP_filter   = 10; % treshold for the low-pass filter for the force plate data.
 %% Proces Files
-%--------------
 
-    RotationMatrix = SelectRotationMatrix(labname);
-    
-    %input
-    %-----
-    Path_In = fullfile(path,[name '.c3d']); %C3D directory
-    
-    %output
-    %------
-    Path_GRF    = fullfile(path_out, [name '.mot']); %output grf directory
-    
-    if ~exist(fullfile(path_out))
-        mkdir(fullfile(path_out));
-    end
+RotationMatrix = SelectRotationMatrix(labname);
+% RotationMatrix.ForcePlate = rotx(pi)*rotz(pi);
+RotationMatrix.neg_direction = 0; 
+
+%input
+%-----
+Path_In = fullfile(path,[name '.c3d']); %C3D directory
+% Path_In = "C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_06.c3d";
+
+%output
+%------
+Path_GRF    = fullfile(path_out, [name '_GRF.mot']); %output grf directory
+
+if ~exist(fullfile(path_out))
+    mkdir(fullfile(path_out));
+end
     
     %% Load data
     %-----------
     [Markers,MLabels,VideoFrameRate,AnalogSignals,ALabels, AUnits, AnalogFrameRate,Event,ParameterGroup,CameraInfo]...
         = readC3D(Path_In);
-    Mark.Labels = MLabels; Mark.Data = Markers;
+
+    Mark.Labels = MLabels; 
+    Mark.Data = Markers;
+
     Frame = [ParameterGroup(1).Parameter(1).data(1,1)/VideoFrameRate ParameterGroup(1).Parameter(2).data(1,1)/VideoFrameRate];
     %% update the trc file 
+    if bool.process_trc 
         [TRCdata,labels] = importTRCdata(fullfile(path,[name '.trc']));
 %         [TRCdata,labels] = importTRCdata("C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_17.trc");
- 
 
         % if trial is in the negative direction, rotate with 180 deg around y
         change = diff(TRCdata(:,3));
         idxs = ~isnan(change); % only take the values that are not nan
         data = change(idxs);
-        if ~strcmp(labname,'treadmill_MALL') && mean(data) < 0 % if on treadmill you do not to rotate
-            neg_direction = 1;
-            
+
+        if ~strcmp(labname,'treadmill_MALL') && mean(data) < 0 % if on treadmill you do not want to rotate            
             % Rotate data
             markers_rot = rot3DVectors(roty(pi), TRCdata(:,3:end));
             TRCdata(:,3:end) = markers_rot;
-        else
-            neg_direction = 0;
+            RotationMatrix.neg_direction = 1;
         end
 
         writeMarkersToTRC(fullfile(path,[name '.trc']),TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:Frame(1,2)*VideoFrameRate]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
+    end
+     %% export EMG from csv
+     if bool.process_EMG
+         path_csv = fullfile(path,[name '.csv']);
+    %      path_csv = "C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_06.csv";
+         T_temp = readtable(path_csv);
+         T = readtable(path_csv,'VariableNamingRule','preserve','NumHeaderLines',3);
+         T(1,:) = []; % delete the row that contained the units
+    
+         % CP4, CP21
+         idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
+         if isempty(idx_emg)
+             idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+         end
+    
+         EMG_data = T(:,idx_emg:end);
+         Process_EMG(EMG_data,AnalogFrameRate,path,name);
+    
+    % %      % CP16
+    % %      idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
+    % %      if isempty(idx_emg)
+    % %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+    % %      end
+    % % 
+    % %      EMG_data = T(:,idx_emg:end);
+    % %      Process_EMG(EMG_data,AnalogFrameRate,path,name);
+    
+%          % CP18
+%          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
+%          if isempty(idx_emg)
+%              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+%          end
+%     
+%          EMG_data = T(:,idx_emg:18);
+%          Process_EMG(EMG_data,AnalogFrameRate,path,name);
+     end
 
-   
-        %% PROCESS GRF for OpenSimProcessing
-        %-----------------------------------
-        if strcmp(labname,'treadmill_MALL')
-            if strcmp(labname,'treadmill_MALL') && strcmp(IPlates,'1')
-                [~]= Process_GRF_TM(AnalogSignals,treshold,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,Markers,ParameterGroup,RotationMatrix,FP_filter,Footmarker,Frame);
-            else
-                [~]= Process_GRF_TM2(AnalogSignals,treshold,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,Markers,ParameterGroup,RotationMatrix,FP_filter,Footmarker,Frame);
-            end
-        else
-            if strcmpi(Stairs,'1')
-            [err]= Process_GRF_stairs(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);   
-            else 
-            [err]= Process_GRF(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
-            end
-        end
-end 
+     %% Export GRF
+     if bool.process_GRF
+%      idx_FP1_force   = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported AMTI OR6 Series Force Plate #1 - Force'));
+%      idx_FP2_force   = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported AMTI OR6 Series Force Plate #2 - Force'));
+%      FP_idxs = [idx_FP1_force:(idx_FP1_force+8),  idx_FP2_force:(idx_FP2_force+8)];
+%      FP_data = T(:,FP_idxs);
+
+        Process_GRF(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
+    end
+% end 
