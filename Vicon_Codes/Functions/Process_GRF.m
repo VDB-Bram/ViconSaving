@@ -1,19 +1,22 @@
 function [err]= Process_GRF(AnalogSignals,threshold,grf_filter,AnalogFrameRate,VideoFrameRate,outname,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
 
 R     =  RotationMatrix.markers(1:3,1:3);
-R = R * rotz(180);
-R_FP1 =  RotationMatrix.ForcePlate(1:3,1:3);
+R = R * rotz(pi); % Vicon to OpenSim
+R_FP1 =  RotationMatrix.ForcePlate(1:3,1:3); % FP to Vicon
+% R_FP1 =  rotx(0); % FP to Vicon
 
+rotY = 0;
+if RotationMatrix.neg_direction
+    rotY = 1;
+end
 
-%get ANKLE MARKERS
+% get ANKLE MARKERS
 AnkleMarkers = {Footmarker.R,Footmarker.L};
 for m = 1:length(AnkleMarkers)
    Marker(:,:,m) = Mark.Data(:,find(strcmp(AnkleMarkers{m},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{m},Mark.Labels))*3)*0.001;
 end
 
- 
 %% remove translation from rotation matrix
-
 
 % RHeel = Mark.Data(:,find(strcmp(AnkleMarkers{1},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{1},Mark.Labels))*3);
 % LHeel =  Mark.Data(:,find(strcmp(AnkleMarkers{2},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{2},Mark.Labels))*3);
@@ -31,9 +34,9 @@ for I = 1:nFP
 end
 
 % Compute COP location & create output matrix
-nFR=length(AnalogSignals(:,1));
-FP_DatOutL = zeros(nFR,nFP*9);
-FP_DatOutR = zeros(nFR,nFP*9);
+nFR = length(AnalogSignals(:,1));
+% FP_DatOutL = zeros(nFR,nFP*9);
+% FP_DatOutR = zeros(nFR,nFP*9);
 
 ForcesR = zeros(nFR,3);
 COPR = zeros(nFR,3);
@@ -41,6 +44,7 @@ MomentsR = zeros(nFR,3);
 ForcesL = zeros(nFR,3);
 COPL = zeros(nFR,3);
 MomentsL = zeros(nFR,3);
+
 if length(AnkleMarkers) > 2
     ForcesX = zeros(nFR,3);
     COPX = zeros(nFR,3);
@@ -55,13 +59,16 @@ for i=1:nFP
     Ind = f(i).channel;
     F = AnalogSignals(:,Ind);
     
-    
     % low pass filter
-    [a,b]=butter(4,grf_filter/(AnalogFrameRate*0.5),'low');% low pass filter.
-    F=filtfilt(a,b,F);
+    [a,b] = butter(4,grf_filter/(AnalogFrameRate*0.5),'low');% low pass filter.
+    F = filtfilt(a,b,F);
     
-    Fx= F(:,1);  Fy=F(:,2);  Fz=F(:,3);
-    Mx= F(:,4).*0.001;  My=F(:,5).*0.001;  Mz=F(:,6).*0.001;
+    Fx = F(:,1);  
+    Fy = F(:,2);  
+    Fz = F(:,3);
+    Mx = F(:,4).*0.001;  
+    My = F(:,5).*0.001;  
+    Mz = F(:,6).*0.001;
     
     % get vertical distance between surface and origin FP
     dz = -1 * f(i).origin(3);
@@ -72,8 +79,8 @@ for i=1:nFP
     Tz = Mz + COPy.*Fx - COPx.*Fy;
     
     % rotate FP info to correct coordinate system
-    Fsel =[Fx Fy Fz];                   % forces
-    Tsel =[zeros(length(Tz),2) Tz];     % free moment
+    Fsel = [Fx Fy Fz];                   % forces
+    Tsel = [zeros(length(Tz),2) Tz];     % free moment
     Flab = rot3DVectors(R_FP1,Fsel);    % rotate forces to lab frame
     Tlab = rot3DVectors(R_FP1,Tsel);    % rotate moments to lab frame
     Frot = rot3DVectors(R,Flab);        % rotate forces from lab to Osim
@@ -84,7 +91,7 @@ for i=1:nFP
     pFP_origin      = f(i).origin;                  % FP surface to FP origin
     pFP_origin_rot  = (R_FP1 * pFP_origin');        % rotate this vector to world frame
     COP             = [COPx COPy ones(nFR,1).*-pFP_origin(3)];   % Matrix with COP info
-    COP_or_lab      = R_FP * COP';                  % rotate COP to lab
+    COP_or_lab      = R_FP * COP' ;                  % rotate COP to lab
     
     COP_lab = ones(nFR,1)*pFP_lab + ones(nFR,1)*pFP_origin_rot' + COP_or_lab';   % add location FP in lab to COP position
     COProt  = rot3DVectors(R,COP_lab);
@@ -128,10 +135,11 @@ for i=1:nFP
     end
 end
 
+
 if length(AnkleMarkers)>2
    writeGRFsToMOT_more(ForcesR,ForcesL,ForcesX,COPR,COPL,COPX,MomentsR(:,2),MomentsL(:,2),MomentsX(:,2),AnalogFrameRate,outname);
 else
-writeGRFsToMOT(ForcesR,ForcesL,COPR,COPL,MomentsR(:,2),MomentsL(:,2),AnalogFrameRate,outname,Frame);
+writeGRFsToMOT(ForcesR,ForcesL,COPR,COPL,MomentsR(:,2),MomentsL(:,2),AnalogFrameRate,outname,Frame,rotY);
 end
 
 err = 1;

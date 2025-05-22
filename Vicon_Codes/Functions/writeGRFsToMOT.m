@@ -1,4 +1,4 @@
-function writeGRFsToMOT(forces1,forces2,cop1,cop2,Ty1,Ty2,FrameRate,outputfilename,Frame); %%(GRFTz, tStart, sF, fname, isFZ, tInfo)
+function writeGRFsToMOT(forces1,forces2,cop1,cop2,Ty1,Ty2,FrameRate,outputfilename,Frame,rotY); %%(GRFTz, tStart, sF, fname, isFZ, tInfo)
 % Purpose:  Write ground reaction forces applied at COP to a 
 %           motion file (fname) for input into the SimTrack
 %           workflow.
@@ -57,8 +57,7 @@ time = [Frame(1,1):1/FrameRate:(Frame(1,1) + (nRowst-1)/FrameRate)]';
 % Write force data to data matrix.
 % NOTE:  each field of mCS.forces has xyz components.
 forceData=[Forces1(:,1) Forces1(:,2) Forces1(:,3) cop1(:,1) cop1(:,2) cop1(:,3)  Forces2(:,1) Forces2(:,2) Forces2(:,3) cop2(:,1) cop2(:,2) cop2(:,3) zeros(nRowst,1) Ty1 zeros(nRowst,1)  zeros(nRowst,1) Ty2 zeros(nRowst,1) ];
-             
-motData=[time forceData];
+            
 %% If the coordinate frame does not have FY as vertical
 % if isFZ,
 %     if isfield(tInfo, 'rotation')
@@ -69,6 +68,12 @@ motData=[time forceData];
 %     forceData = rot3DVectors(rot, forceData);
 % end
 
+if rotY
+    rot = [-1 0 0;  0 1 0; 0 0 -1];
+    forceData = rot3DVectors(rot, forceData);
+end
+
+motData=[time forceData];
 %% om de frequentie in de fp file op een 10-voud te krijgen.
 
 % newforceData=interp1(time,forceData,timeresampled);
