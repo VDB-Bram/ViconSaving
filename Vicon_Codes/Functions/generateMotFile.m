@@ -82,10 +82,16 @@ end
 cols = [cols, '\n'];
 fprintf(fid, cols);
 
-for i = 1:datarows,
-    fprintf(fid, '%20.10f\t', dataMatrix(i,:));
-    fprintf(fid, '\n');
-end
+% for i = 1:datarows,
+%     fprintf(fid, '%20.10f\t', dataMatrix(i,:));
+%     fprintf(fid, '\n');
+% end
+
+% Build row format once
+rowFmt = [repmat('%20.10f\t', 1, size(dataMatrix,2)) '\n'];
+
+% Write all rows
+fprintf(fid, rowFmt, dataMatrix.');
 
 fclose(fid);
 %fprintf('Saved motion file: %s\n', filename);

@@ -98,17 +98,22 @@ fprintf(fid, 'endheader\n\n');
 
 % Write column labels.
 fprintf(fid, '%20s\t', 'time');
-for i = 1:nCols-1,
+for i = 1:nCols-1
 	fprintf(fid, '%20s\t', label{i});
 end
 
+% % Write data.
+% for i = 1:nRowst
+%     fprintf(fid, '\n'); 
+% 	for j = 1:nCols
+%         fprintf(fid, '%20.8f\t', motData(i, j));
+%     end
+% end
+
 % Write data.
-for i = 1:nRowst
-    fprintf(fid, '\n'); 
-	for j = 1:nCols
-        fprintf(fid, '%20.8f\t', motData(i, j));
-    end
-end
+rowFmt = [repmat('%20.8f\t', 1, nCols) '\n'];
+fprintf(fid, '\n');
+fprintf(fid, rowFmt, motData.');  
 
 fclose(fid);
 return;
