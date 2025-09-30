@@ -1,20 +1,24 @@
 % function CreateMot_gait(labname)
 % addpath('C:\Users\Public\Documents\Vicon\Nexus2.x\Configurations\Pipelines\Vicon_Codes\Functions')
 addpath('C:\Users\u0138016\OneDrive - KU Leuven\GitHub\ViconSaving\Vicon_Codes\Functions')
+close all
 
 %% Define Input
 %--------------
 bool.process_trc = 0;
 bool.process_EMG = 1;
-bool.process_GRF = 1;
+bool.process_GRF = 0;
 
 % vicon = ViconNexus();
 % [path, name] = vicon.GetTrialName();
 labname = 'CMAL_1';
-path = 'C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP21\T0\Data\Processed\C3D';
-name = 'CP21_T0_02';
+path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP8\T0\Data\Processed\C3D';
+name = 'CP8_T0_39';
 main_root   = path; %directory to the place where the C3D files you want to process are stored
-path_out    = path; %directory where you want to store the OSIM-files
+path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP8\T0\Data\Processed\'); %directory where you want to store the OSIM-files
+
+outPath_GRF = fullfile(path_out,'GRF', [name '_GRF.mot']); %output grf directory
+outPath_trc = fullfile(path_out,'trc', [name '.trc']); 
 
 
 %Provide names of 2 markers on the foot to automatically couple side to
@@ -38,7 +42,7 @@ Path_In = fullfile(path,[name '.c3d']); %C3D directory
 
 %output
 %------
-Path_GRF    = fullfile(path_out, [name '_GRF.mot']); %output grf directory
+% Path_GRF    = fullfile(path_out, [name '_GRF.mot']); %output grf directory
 
 if ~exist(fullfile(path_out))
     mkdir(fullfile(path_out));
@@ -70,40 +74,56 @@ end
             RotationMatrix.neg_direction = 1;
         end
 
-        writeMarkersToTRC(fullfile(path,[name '.trc']),TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:Frame(1,2)*VideoFrameRate]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
+        writeMarkersToTRC(outPath_trc,TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:Frame(1,2)*VideoFrameRate]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
     end
      %% export EMG from csv
      if bool.process_EMG
          path_csv = fullfile(path,[name '.csv']);
-    %      path_csv = "C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_06.csv";
+%          path_csv = "C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_06.csv";
          T_temp = readtable(path_csv);
          T = readtable(path_csv,'VariableNamingRule','preserve','NumHeaderLines',3);
          T(1,:) = []; % delete the row that contained the units
-    
-         % CP4, CP21
+
+%         opts = detectImportOptions(path_csv, ...
+%             'NumHeaderLines', 3, ...
+%             'VariableNamingRule', 'preserve');
+%         
+%         % Treat quote-only entries as missing
+%         opts = setvaropts(opts, opts.VariableNames, 'TreatAsMissing', {'""','"'});
+%         
+%         % Also, for text variables, mark empty fields as missing
+%         opts = setvaropts(opts, opts.VariableNames, 'EmptyFieldRule', 'auto');
+%         
+%         T = readtable(path_csv, opts);
+%         
+%         % Drop columns that are completely missing
+%         T(:, all(ismissing(T))) = [];
+
+
+         % CP4, CP21, CP22 (from trial 6 onwards)
          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
          if isempty(idx_emg)
              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
          end
     
          EMG_data = T(:,idx_emg:end);
-         Process_EMG(EMG_data,AnalogFrameRate,path,name);
+         Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
     
-    % %      % CP16
-    % %      idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
-    % %      if isempty(idx_emg)
-    % %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
-    % %      end
-    % % 
-    % %      EMG_data = T(:,idx_emg:end);
-    % %      Process_EMG(EMG_data,AnalogFrameRate,path,name);
-    
-%          % CP18
-%          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
+%          % CP16
+%          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
 %          if isempty(idx_emg)
 %              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
 %          end
 %     
+%          EMG_data = T(:,idx_emg:end);
+%          Process_EMG(EMG_data,AnalogFrameRate,path,name);
+    
+%          % CP18, CP22 (trial 1->4)
+%          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
+%          if isempty(idx_emg)
+%              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+%          end
+% %     
 %          EMG_data = T(:,idx_emg:18);
 %          Process_EMG(EMG_data,AnalogFrameRate,path,name);
      end
@@ -115,6 +135,6 @@ end
 %      FP_idxs = [idx_FP1_force:(idx_FP1_force+8),  idx_FP2_force:(idx_FP2_force+8)];
 %      FP_data = T(:,FP_idxs);
 
-        Process_GRF(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,Path_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
+        Process_GRF(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,outPath_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
     end
 % end 
