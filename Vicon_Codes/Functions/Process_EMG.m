@@ -34,8 +34,8 @@ function Process_EMG(EMG_data,framerate,path,name)
         output_filtered = [time', EMG_low];
          
         % Define output path and name        
-        path_out_raw = fullfile(path, [name,'_EMG_raw.mot']);
-        path_out_filt = fullfile(path, [name,'_EMG_filt.mot']);
+        path_out_raw = fullfile(path, 'EMG',[name,'_EMG_raw.mot']);
+        path_out_filt = fullfile(path,'EMG',[name,'_EMG_filt.mot']);
 
         % Write to mot-file
         colheaders = [{'Time'} ,EMG_data.Properties.VariableNames];
@@ -43,4 +43,27 @@ function Process_EMG(EMG_data,framerate,path,name)
         generateMotFile(output_filtered,colheaders, path_out_filt);
 
 
+        % figure filtered
+        figure
+        tiledlayout(4,4)
+        for n = 2:size(output_filtered,2)
+            nexttile
+            plot(output_filtered(:,n))
+            title(colheaders{n})
+        end 
+        fig_path_out_filt = fullfile(path, 'EMG',[name,'_EMG_filt.jpg']);
+        exportgraphics(gcf,fig_path_out_filt)
+        movegui(gcf,'center')
+
+        % figure raw
+        figure
+        tiledlayout(4,4)
+        for n = 2:size(output_raw,2)
+            nexttile
+            plot(output_raw(:,n))
+            title(colheaders{n})
+        end 
+        fig_path_out_raw = fullfile(path, 'EMG',[name,'_EMG_raw.jpg']);
+        exportgraphics(gcf,fig_path_out_raw)
+        movegui(gcf,'center')
 end
