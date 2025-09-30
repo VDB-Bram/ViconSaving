@@ -13,7 +13,7 @@ bool.process_GRF = 1;
 % [path, name] = vicon.GetTrialName();
 labname = 'CMAL_1';
 path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP22\T0\Data\Processed\C3D';
-name = 'CP22_T0_06';
+name = 'CP22_T0_07';
 main_root   = path; %directory to the place where the C3D files you want to process are stored
 path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP22\T0\Data\Processed\'); %directory where you want to store the OSIM-files
 
@@ -74,7 +74,7 @@ end
             RotationMatrix.neg_direction = 1;
         end
 
-        writeMarkersToTRC(outPath_trc,TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:Frame(1,2)*VideoFrameRate]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
+        writeMarkersToTRC(outPath_trc,TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:round(Frame(1,2)*VideoFrameRate)]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
     end
      %% export EMG from csv
      if bool.process_EMG
