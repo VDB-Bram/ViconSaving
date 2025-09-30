@@ -5,17 +5,17 @@ close all
 
 %% Define Input
 %--------------
-bool.process_trc = 0;
+bool.process_trc = 1;
 bool.process_EMG = 1;
-bool.process_GRF = 0;
+bool.process_GRF = 1;
 
 % vicon = ViconNexus();
 % [path, name] = vicon.GetTrialName();
 labname = 'CMAL_1';
-path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP8\T0\Data\Processed\C3D';
-name = 'CP8_T0_39';
+path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP22\T0\Data\Processed\C3D';
+name = 'CP22_T0_06';
 main_root   = path; %directory to the place where the C3D files you want to process are stored
-path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP8\T0\Data\Processed\'); %directory where you want to store the OSIM-files
+path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP22\T0\Data\Processed\'); %directory where you want to store the OSIM-files
 
 outPath_GRF = fullfile(path_out,'GRF', [name '_GRF.mot']); %output grf directory
 outPath_trc = fullfile(path_out,'trc', [name '.trc']); 
@@ -116,7 +116,7 @@ end
 %          end
 %     
 %          EMG_data = T(:,idx_emg:end);
-%          Process_EMG(EMG_data,AnalogFrameRate,path,name);
+%          Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
     
 %          % CP18, CP22 (trial 1->4)
 %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
@@ -125,7 +125,7 @@ end
 %          end
 % %     
 %          EMG_data = T(:,idx_emg:18);
-%          Process_EMG(EMG_data,AnalogFrameRate,path,name);
+%          Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
      end
 
      %% Export GRF
