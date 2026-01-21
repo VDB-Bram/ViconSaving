@@ -5,15 +5,15 @@ R = R * rotz(pi); % Vicon to OpenSim
 R_FP1 =  RotationMatrix.ForcePlate(1:3,1:3); % FP to Vicon
 % R_FP1 =  rotx(0); % FP to Vicon
 
-rotY = 0;
-if RotationMatrix.neg_direction
-    rotY = 1;
-end
-
 % get ANKLE MARKERS
 AnkleMarkers = {Footmarker.R,Footmarker.L};
 for m = 1:length(AnkleMarkers)
    Marker(:,:,m) = Mark.Data(:,find(strcmp(AnkleMarkers{m},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{m},Mark.Labels))*3)*0.001;
+end
+
+rotY = 0;
+if RotationMatrix.neg_direction
+    rotY = 1;
 end
 
 %% remove translation from rotation matrix
@@ -98,7 +98,7 @@ for i=1:nFP
     
     %determine which foot hits FP
     pFP_lab     = sum(f(i).corners)./4;
-    timeInd = find(abs(Flab(:,2))>25,1);
+    timeInd = find(abs(Frot(:,2))>threshold,1);
     if isempty(timeInd)
         timeInd = 1;
     end 
