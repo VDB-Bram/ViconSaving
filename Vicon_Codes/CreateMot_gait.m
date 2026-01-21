@@ -6,18 +6,19 @@ close all
 %% Define Input
 %--------------
 bool.process_trc = 0;
-bool.process_EMG = 0;
-bool.process_GRF = 1;
+bool.process_EMG = 1;
+bool.write_trc = 0;
+bool.process_GRF = 0;
 
 % vicon = ViconNexus();
 % [path, name] = vicon.GetTrialName();
 labname = 'CMAL_1';
-path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP4\T0\Data\Processed\C3D';
+path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP16\T0\Data\Processed\C3D';
 % path = 'C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D';
-name_begin = 'CP4_T0_';
-trials = 5;
+name_begin = 'CP16_T0_';
+trials = 86:105;
 main_root   = path; %directory to the place where the C3D files you want to process are stored
-path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP4\T0\Data\Processed\'); %directory where you want to store the OSIM-files
+path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP16\T0\Data\Processed\'); %directory where you want to store the OSIM-files
 
 %Provide names of 2 markers on the foot to automatically couple side to
 %grf. IMPORTANT: does not work when you are standing with both feet on the
@@ -32,6 +33,8 @@ for i = trials
     
     trial_num = sprintf('%02d',i);
     name = [name_begin,trial_num];
+
+%     name = [name_begin,num2str(i)];
 
     outPath_GRF = fullfile(path_out,'GRF', [name '_GRF.mot']); %output grf directory
     outPath_trc = fullfile(path_out,'trc', [name '.trc']); 
@@ -63,7 +66,7 @@ for i = trials
     
         Frame = [ParameterGroup(1).Parameter(1).data(1,1)/VideoFrameRate ParameterGroup(1).Parameter(2).data(1,1)/VideoFrameRate];
         %% update the trc file 
-         
+         if bool.process_trc
             [TRCdata,labels] = importTRCdata(fullfile(path,[name '.trc']));
     %         [TRCdata,labels] = importTRCdata("C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_17.trc");
     
@@ -78,8 +81,9 @@ for i = trials
                 TRCdata(:,3:end) = markers_rot;
                 RotationMatrix.neg_direction = 1;
             end
-
-        if bool.process_trc
+         end
+        
+         if bool.write_trc
             writeMarkersToTRC(outPath_trc,TRCdata(:,3:end),labels(3:end),VideoFrameRate,[Frame(1,1)*VideoFrameRate:round(Frame(1,2)*VideoFrameRate)]',[Frame(1,1):1/VideoFrameRate:(Frame(1,1) + (size(TRCdata,1)-1)/VideoFrameRate)]','mm')
         end
          %% export EMG from csv
@@ -106,7 +110,7 @@ for i = trials
     %         T(:, all(ismissing(T))) = [];
     
     
-             % CP4, CP21, CP22 (from trial 6 onwards)
+             % CP4, CP16, CP21, CP22 (from trial 6 onwards)
              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
              if isempty(idx_emg)
                  idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
@@ -115,14 +119,14 @@ for i = trials
              EMG_data = T(:,idx_emg:end);
              Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
         
-    %          % CP16
-    %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
-    %          if isempty(idx_emg)
-    %              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
-    %          end
-    %     
-    %          EMG_data = T(:,idx_emg:end);
-    %          Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
+%              % CP16
+%              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #2 - Voltage'));
+%              if isempty(idx_emg)
+%                  idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+%              end
+%         
+%              EMG_data = T(:,idx_emg:end);
+%              Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
         
     %          % CP18, CP22 (trial 1->4)
     %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
@@ -140,7 +144,11 @@ for i = trials
     %      idx_FP2_force   = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported AMTI OR6 Series Force Plate #2 - Force'));
     %      FP_idxs = [idx_FP1_force:(idx_FP1_force+8),  idx_FP2_force:(idx_FP2_force+8)];
     %      FP_data = T(:,FP_idxs);
-    
+
+             % to force rotation around vertical
+%             RotationMatrix.neg_direction = 1
+
+
             Process_GRF(AnalogSignals,treshold,FP_filter,AnalogFrameRate,VideoFrameRate,outPath_GRF,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
         end
 end 
