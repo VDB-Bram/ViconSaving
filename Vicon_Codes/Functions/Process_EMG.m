@@ -78,7 +78,7 @@ function Process_EMG(EMG_data,framerate,path,name)
             sze = length(output_raw(:,n));
             ff= fix(sze/2) + 1;
             f = [0:ff-1]*framerate/sze;
-            plot(f(1:ff), abs(data_ft(1:ff)/sze*2),'b'); 
+            plot(f(2:ff), abs(data_ft(2:ff)/sze*2),'b'); 
             axis tight;
             title(colheaders{n})
         end
@@ -88,8 +88,56 @@ function Process_EMG(EMG_data,framerate,path,name)
         han.YLabel.Visible='on';
         ylabel(han,'Magnitude',FontSize=14,FontWeight='bold');
         xlabel(han,'Frequency (Hz)',FontSize=14,FontWeight='bold');
-        sgtitle('Frequency spectrum');
+        sgtitle('Frequency spectrum (raw)');
         fig_path_out_raw = fullfile(path, 'EMG',[name,'_EMG_raw_freq.jpg']);
+        exportgraphics(gcf,fig_path_out_raw)
+        movegui(gcf,'center')
+
+        % figure frequency spectrum bandpass
+        figure
+        tiledlayout(4,4)
+        for n = 2:size(EMG_band,2)
+            nexttile
+            data_ft=fft(EMG_band(:,n));
+            sze = length(EMG_band(:,n));
+            ff= fix(sze/2) + 1;
+            f = [0:ff-1]*framerate/sze;
+            plot(f(2:ff), abs(data_ft(2:ff)/sze*2),'b'); 
+            axis tight;
+            title(colheaders{n})
+        end
+        set(gcf,'Position',[100 100 800 800]);
+        han = axes(gcf,'visible','off'); 
+        han.XLabel.Visible='on';
+        han.YLabel.Visible='on';
+        ylabel(han,'Magnitude',FontSize=14,FontWeight='bold');
+        xlabel(han,'Frequency (Hz)',FontSize=14,FontWeight='bold');
+        sgtitle('Frequency spectrum (bandpassed)');
+        fig_path_out_raw = fullfile(path, 'EMG',[name,'_EMG_band_freq.jpg']);
+        exportgraphics(gcf,fig_path_out_raw)
+        movegui(gcf,'center')
+
+        % figure frequency spectrum filtered
+        figure
+        tiledlayout(4,4)
+        for n = 2:size(output_filtered,2)
+            nexttile
+            data_ft=fft(output_filtered(:,n));
+            sze = length(output_filtered(:,n));
+            ff= fix(sze/2) + 1;
+            f = [0:ff-1]*framerate/sze;
+            plot(f(2:ff), abs(data_ft(2:ff)/sze*2),'b'); 
+            axis tight;
+            title(colheaders{n})
+        end
+        set(gcf,'Position',[100 100 800 800]);
+        han = axes(gcf,'visible','off'); 
+        han.XLabel.Visible='on';
+        han.YLabel.Visible='on';
+        ylabel(han,'Magnitude',FontSize=14,FontWeight='bold');
+        xlabel(han,'Frequency (Hz)',FontSize=14,FontWeight='bold');
+        sgtitle('Frequency spectrum (filtered)');
+        fig_path_out_raw = fullfile(path, 'EMG',[name,'_EMG_filt_freq.jpg']);
         exportgraphics(gcf,fig_path_out_raw)
         movegui(gcf,'center')
 
