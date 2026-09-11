@@ -1,22 +1,23 @@
 % function CreateMot_gait(labname)
 % addpath('C:\Users\Public\Documents\Vicon\Nexus2.x\Configurations\Pipelines\Vicon_Codes\Functions')
 addpath('C:\Users\u0138016\OneDrive - KU Leuven\GitHub\ViconSaving\Vicon_Codes\Functions')
-close all
+% close all
+clear all
 
 %% Define Input
 %--------------
-bool.process_trc = 0;
-bool.process_EMG = 1;
+bool.process_trc = 1;
+bool.process_EMG = 0;
 bool.write_trc = 0;
-bool.process_GRF = 0;
+bool.process_GRF = 1;
 
 % vicon = ViconNexus();
 % [path, name] = vicon.GetTrialName();
 labname = 'CMAL_1';
-path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP16\T0\Data\Processed\C3D';
-% path = 'C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D';
+% path = 'J:\GBW-0301_HumanMovementBiomechanics\SimCP2\Subjects\CP8\T0\Data\Processed\C3D\';
+path = 'C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP16\T0\Data\Processed\C3D';
 name_begin = 'CP16_T0_';
-trials = 86:105;
+trials = 14;
 main_root   = path; %directory to the place where the C3D files you want to process are stored
 path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP16\T0\Data\Processed\'); %directory where you want to store the OSIM-files
 
@@ -25,9 +26,12 @@ path_out    = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\
 %force plate (at any point in the movement).
 Footmarker.R = 'RHEE';
 Footmarker.L = 'LHEE';
+% Footmarker.R = 'RANK'; % you can use these instead of heel when detection of correct foot does not work like it should during s2s (feet close to each other)
+% Footmarker.L = 'LANK';
 
 treshold    = 10; % treshold to define valid FP contact.
 FP_filter   = 10; % treshold for the low-pass filter for the force plate data.
+
 %% Proces Files
 for i = trials
     
@@ -58,15 +62,18 @@ for i = trials
         
         %% Load data
         %-----------
+        
         [Markers,MLabels,VideoFrameRate,AnalogSignals,ALabels, AUnits, AnalogFrameRate,Event,ParameterGroup,CameraInfo]...
             = readC3D(Path_In);
     
+        if bool.process_trc
+
         Mark.Labels = MLabels; 
         Mark.Data = Markers;
     
         Frame = [ParameterGroup(1).Parameter(1).data(1,1)/VideoFrameRate ParameterGroup(1).Parameter(2).data(1,1)/VideoFrameRate];
         %% update the trc file 
-         if bool.process_trc
+         
             [TRCdata,labels] = importTRCdata(fullfile(path,[name '.trc']));
     %         [TRCdata,labels] = importTRCdata("C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects\CP15\T0\Data\Processed\C3D\CP15_T0_17.trc");
     
@@ -128,14 +135,15 @@ for i = trials
 %              EMG_data = T(:,idx_emg:end);
 %              Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
         
-    %          % CP18, CP22 (trial 1->4)
-    %          idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
-    %          if isempty(idx_emg)
-    %              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
-    %          end
-    % %     
-    %          EMG_data = T(:,idx_emg:18);
-    %          Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
+%              % CP18, CP22 (trial 1->4)
+%              idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'Imported Analog EMG #1 - Voltage'));
+%              if isempty(idx_emg)
+%                  idx_emg  = find(strcmp(T_temp.Properties.VariableDescriptions,'EMG - Voltage'));
+%              end
+%     %     
+%              EMG_data = T(:,idx_emg:18);
+% %              Process_EMG(EMG_data,AnalogFrameRate,path_out,name);
+%              Process_EMG(EMG_data,1000,path_out,name);
          end
     
          %% Export GRF
