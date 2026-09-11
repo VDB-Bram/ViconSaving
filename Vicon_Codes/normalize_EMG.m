@@ -6,8 +6,8 @@ addpath(genpath('C:\Users\u0138016\OneDrive - KU Leuven\GitHub\ViconSaving\Vicon
 
 %% find max EMG signals
 % trials to take into account
-trials = [7:20,32:40];
-subject = 'CP15';
+trials = [9:14,17:18,20:23,25,27,28,30];
+subject = 'CP16';
 
 datapath = fullfile('C:\Users\u0138016\OneDrive - KU Leuven\SimCP_2\Subjects',subject,'T0\Data\Processed\');
 
