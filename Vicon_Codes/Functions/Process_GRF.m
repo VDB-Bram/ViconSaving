@@ -1,7 +1,9 @@
-function [err]= Process_GRF(AnalogSignals,threshold,grf_filter,AnalogFrameRate,VideoFrameRate,outname,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame);
+function [err]= Process_GRF(AnalogSignals,threshold,grf_filter,AnalogFrameRate,VideoFrameRate,outname,Mark,ParameterGroup,RotationMatrix,Footmarker,Frame)
 
 R     =  RotationMatrix.markers(1:3,1:3);
 R = R * rotz(pi); % Vicon to OpenSim
+% R_cop = [1 0 0; 0 0 1; 0 1 0];
+
 R_FP1 =  RotationMatrix.ForcePlate(1:3,1:3); % FP to Vicon
 % R_FP1 =  rotx(0); % FP to Vicon
 
@@ -18,8 +20,8 @@ end
 
 %% remove translation from rotation matrix
 
-% RHeel = Mark.Data(:,find(strcmp(AnkleMarkers{1},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{1},Mark.Labels))*3);
-% LHeel =  Mark.Data(:,find(strcmp(AnkleMarkers{2},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{2},Mark.Labels))*3);
+% RHeel = Mark.Data(:,find(strcmp(AnkleMarkers{1},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{1},Mark.Labels))*3)*0.001;
+% LHeel =  Mark.Data(:,find(strcmp(AnkleMarkers{2},Mark.Labels))*3-2:find(strcmp(AnkleMarkers{2},Mark.Labels))*3)*0.001;
 
 VTime = [1/VideoFrameRate:1/VideoFrameRate:size(Mark.Data,1)/VideoFrameRate];
 ATime = [1/AnalogFrameRate:1/AnalogFrameRate:size(AnalogSignals,1)/AnalogFrameRate];
@@ -60,8 +62,8 @@ for i=1:nFP
     F = AnalogSignals(:,Ind);
     
     % low pass filter
-    [a,b] = butter(4,grf_filter/(AnalogFrameRate*0.5),'low');% low pass filter.
-    F = filtfilt(a,b,F);
+    [b,a] = butter(4,grf_filter/(AnalogFrameRate*0.5),'low');% low pass filter.
+    F = filtfilt(b,a,F);
     
     Fx = F(:,1);  
     Fy = F(:,2);  
@@ -69,6 +71,14 @@ for i=1:nFP
     Mx = F(:,4).*0.001;  
     My = F(:,5).*0.001;  
     Mz = F(:,6).*0.001;
+%     figure; 
+%     plot(Fx); hold on
+%     plot(Fy); hold on
+%     plot(Fz); hold on
+%     figure; 
+%     plot(Mx); hold on
+%     plot(My); hold on
+%     plot(Mz); hold on
     
     % get vertical distance between surface and origin FP
     dz = -1 * f(i).origin(3);
@@ -77,7 +87,8 @@ for i=1:nFP
     COPx = (-1*My + dz*Fx)./Fz;
     COPy = (Mx + dz*Fy)./Fz;
     Tz = Mz + COPy.*Fx - COPx.*Fy;
-    
+%     figure; plot(COPx); hold on; plot(COPy)
+
     % rotate FP info to correct coordinate system
     Fsel = [Fx Fy Fz];                   % forces
     Tsel = [zeros(length(Tz),2) Tz];     % free moment
@@ -95,21 +106,25 @@ for i=1:nFP
     
     COP_lab = ones(nFR,1)*pFP_lab + ones(nFR,1)*pFP_origin_rot' + COP_or_lab';   % add location FP in lab to COP position
     COProt  = rot3DVectors(R,COP_lab);
-    
+%     figure; plot(COProt)
+
     %determine which foot hits FP
-    pFP_lab     = sum(f(i).corners)./4;
-    timeInd = find(abs(Frot(:,2))>threshold,1);
+    timeInd = find(abs(Frot(:,2))>threshold,1)+20;
+%     timeInd
     if isempty(timeInd)
         timeInd = 1;
     end 
     [~, v_ind]= min(abs(VTime - ATime(timeInd)));
+%     v_ind
     
     for m = 1:length(AnkleMarkers)
-    distance(1,m) = sqrt((COProt(timeInd,1) - Marker(v_ind,1,m)).^2+(COProt(timeInd,2) - Marker(v_ind,3,m)).^2+(COProt(timeInd,3) - Marker(v_ind,2,m)).^2);
+%         distance(1,m) = sqrt((COProt(timeInd,1) - Marker(v_ind,1,m)).^2+(COProt(timeInd,2) - Marker(v_ind,3,m)).^2+(COProt(timeInd,3) - Marker(v_ind,2,m)).^2);
+        distance(1,m) = sqrt((COProt(timeInd,1) - Marker(v_ind,1,m)).^2+(COProt(timeInd,2) - Marker(v_ind,3,m)).^2+(COProt(timeInd,3) + Marker(v_ind,2,m)).^2); % in last term to addition instead of substraction, because values ask to do so. No idea why.
     end
-%     Rdistance  = sqrt((COProt(timeInd,1) - RHeel(v_ind,1)).^2+(COProt(timeInd,2) - RHeel(v_ind,2)).^2+(COProt(timeInd,3) - RHeel(v_ind,3)).^2);%sqrt((pFP_lab(2) - RHeel(v_ind,2)).^2);
-%     Ldistance  = sqrt((COProt(timeInd,1) - LHeel(v_ind,1)).^2+(COProt(timeInd,2) - LHeel(v_ind,2)).^2+(COProt(timeInd,3) - LHeel(v_ind,3)).^2);%sqrt((pFP_lab(2) - LHeel(v_ind,2)).^2);
-%     
+%     figure;plot(COProt,'DisplayName','COProt')
+%     Rdistance  = sqrt((COProt(timeInd,1) - RHeel(v_ind,1)).^2+(COProt(timeInd,2) - RHeel(v_ind,2)).^2+(COProt(timeInd,3) - RHeel(v_ind,3)).^2); %sqrt((pFP_lab(2) - RHeel(v_ind,2)).^2);
+%     Ldistance  = sqrt((COProt(timeInd,1) - LHeel(v_ind,1)).^2+(COProt(timeInd,2) - LHeel(v_ind,2)).^2+(COProt(timeInd,3) - LHeel(v_ind,3)).^2); %sqrt((pFP_lab(2) - LHeel(v_ind,2)).^2);
+   
     % trim COP information with Ftrehsold of 20 N (COP nor reliable if
     % forces are low)
     ind=find(Frot(:,2)<threshold);
@@ -118,8 +133,8 @@ for i=1:nFP
         Frot(ind,j)     = 0;
         Trot(ind,j)     = 0;
     end
-    
-    [min_val,min_ind] = min(distance);
+    distance
+    [~,min_ind] = min(distance);
     if min_ind == 1%Rdistance < Ldistance
         ForcesR = ForcesR + Frot;
         MomentsR  = MomentsR + Trot;
@@ -133,6 +148,19 @@ for i=1:nFP
         MomentsX  = MomentsX + Trot;
         COPX = COPX + COProt;
     end
+%     if Rdistance < Ldistance
+%         ForcesR = ForcesR + Frot;
+%         MomentsR  = MomentsR + Trot;
+%         COPR = COPR + COProt;
+%     elseif Ldistance < Rdistance
+%         ForcesL = ForcesL + Frot;
+%         MomentsL  = MomentsL + Trot;
+%         COPL = COPL + COProt;
+%     else
+%         ForcesX = ForcesX + Frot;
+%         MomentsX  = MomentsX + Trot;
+%         COPX = COPX + COProt;
+%     end
 end
 
 
